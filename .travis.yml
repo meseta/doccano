@@ -5,9 +5,9 @@ python:
 
 env:
   - DATABASE=sqlite
-  - DATABASE=postgres
-  - DATABASE=mssql
-  - DATABASE=mysql
+  # - DATABASE=postgres
+  # - DATABASE=mssql
+  # - DATABASE=mysql
 
 services:
   - docker
@@ -30,10 +30,10 @@ before_install:
     fi
 
 install:
-    - pip install mkdocs mkdocs-material
+    - pip install --no-cache-dir mkdocs==1.1 mkdocs-material==4.6.3
 
 script:
-  - docker build --target=builder --tag=doccano-test .
+  - docker build --target=runtime --tag=doccano-test .
   - >
     if [[ "${DATABASE}" != "sqlite" ]]; then
       docker run --network doccano -e DATABASE_URL="${DATABASE_URL}" -it doccano-test sh -c 'app/manage.py wait_for_db && app/manage.py migrate && app/manage.py test api.tests server.tests'
@@ -46,13 +46,13 @@ deploy:
   - provider: script
     script: tools/cd.sh travis-${TRAVIS_BUILD_NUMBER}
     on:
-      repo: chakki-works/doccano
+      repo: doccano/doccano
       branch: master
 
   - provider: script
     script: tools/cd.sh ${TRAVIS_TAG}
     on:
-      repo: chakki-works/doccano
+      repo: doccano/doccano
       tags: true
 
   - provider: pages
@@ -60,5 +60,5 @@ deploy:
     github_token: $GITHUB_TOKEN
     local_dir: site
     on:
-        repo: chakki-works/doccano
+        repo: doccano/doccano
         branch: master

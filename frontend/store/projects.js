@@ -8,14 +8,22 @@ export const state = () => ({
 })
 
 export const getters = {
-  isProjectSelected(state) {
-    return state.selected.length > 0
+  isDeletable(state) {
+    const isProjectAdministrator = project => project.current_users_role.is_project_admin
+    return state.selected.length > 0 && state.selected.every(isProjectAdministrator)
+  },
+  isEmpty(state) {
+    return Object.keys(state.current).length === 0 && state.current.constructor === Object
   },
   currentProject(state) {
     return state.current
   },
   getCurrentUserRole(state) {
     return state.current.current_users_role || {}
+  },
+  canViewApproveButton(state) {
+    const role = state.current.current_users_role
+    return role && !role.is_annotator
   },
   getFilterOption(state) {
     if (state.current.project_type === 'DocumentClassification') {
@@ -57,13 +65,18 @@ export const getters = {
     }
     const json = {
       type: 'json',
-      text: 'JSON',
+      text: 'JSONL',
       accept: '.json,.jsonl'
     }
     const conll = {
       type: 'conll',
       text: 'CoNLL',
       accept: '.conll'
+    }
+    const excel = {
+      type: 'excel',
+      text: 'Excel',
+      accept: '.xlsx'
     }
     if (state.current.project_type === 'DocumentClassification') {
       json.examples = [
@@ -77,10 +90,17 @@ export const getters = {
         '"Really great transaction.","positive"\n',
         '"Great price.","positive"'
       ]
+      excel.examples = [
+        'text,label\n',
+        '"Terrible customer service.","negative"\n',
+        '"Really great transaction.","positive"\n',
+        '"Great price.","positive"'
+      ]
       return [
         plain,
         csv,
-        json
+        json,
+        excel
       ]
     } else if (state.current.project_type === 'SequenceLabeling') {
       json.examples = [
@@ -118,10 +138,17 @@ export const getters = {
         '"Good morning.","おはようございます。"\n',
         '"See you.","さようなら。"'
       ]
+      excel.examples = [
+        'text,label\n',
+        '"Hello!","こんにちは！"\n',
+        '"Good morning.","おはようございます。"\n',
+        '"See you.","さようなら。"'
+      ]
       return [
         plain,
         csv,
-        json
+        json,
+        excel
       ]
     } else {
       return []
@@ -134,11 +161,11 @@ export const getters = {
     }
     const json = {
       type: 'json',
-      text: 'JSON'
+      text: 'JSONL'
     }
     const jsonl = {
       type: 'json1',
-      text: 'JSON(Text label)'
+      text: 'JSONL(Text label)'
     }
     if (state.current.project_type === 'DocumentClassification') {
       json.examples = [
@@ -190,6 +217,10 @@ export const getters = {
     } else {
       return []
     }
+  },
+  loadSearchOptions(state) {
+    const checkpoint = JSON.parse(localStorage.getItem('checkpoint')) || {}
+    return checkpoint[state.current.id] ? checkpoint[state.current.id] : { page: 1 }
   }
 }
 
@@ -218,6 +249,11 @@ export const mutations = {
   },
   setCurrent(state, payload) {
     state.current = payload
+  },
+  saveSearchOptions(state, options) {
+    const checkpoint = JSON.parse(localStorage.getItem('checkpoint')) || {}
+    checkpoint[state.current.id] = options
+    localStorage.setItem('checkpoint', JSON.stringify(checkpoint))
   }
 }
 
